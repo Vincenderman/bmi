@@ -27,11 +27,9 @@ import re
 from gi.repository import Gtk, Adw, Gio, Gdk
 
 # Internal imports
-from . import widgets
-from .calculator import Calculator
+from . import widgets, calculate
 
 # Shorthand vars
-calc = Calculator()
 clipboard = Gdk.Display.get_default().get_clipboard()
 horizontal = Gtk.Orientation.HORIZONTAL
 vertical = Gtk.Orientation.VERTICAL
@@ -74,6 +72,7 @@ class BmiWindow(Adw.ApplicationWindow):
   simple_breakpoint = Gtk.Template.Child()
   advanced_breakpoint = Gtk.Template.Child()
   advanced_inputs_clamp = Gtk.Template.Child()
+
   # Input rows
   height_input_row = Gtk.Template.Child()
   weight_input_row = Gtk.Template.Child()
@@ -81,6 +80,7 @@ class BmiWindow(Adw.ApplicationWindow):
   age_input_row = Gtk.Template.Child()
   waist_input_row = Gtk.Template.Child()
   hip_input_row = Gtk.Template.Child()
+
   # Result rows
   bmi_result_row = Gtk.Template.Child()
   whtr_result_row = Gtk.Template.Child()
@@ -104,6 +104,7 @@ class BmiWindow(Adw.ApplicationWindow):
       key = row.get_key()
       row.set_value(settings[key])
       row.connect('notify::value', self.update_results)
+
     # Configuring results
     self.result_rows = [
       self.bmi_result_row,
@@ -114,11 +115,12 @@ class BmiWindow(Adw.ApplicationWindow):
     for row in self.result_rows:
       row.connect('activated', self.copy_result)
       row.connect('info-clicked', self.on_result_row_info_clicked)
+
     self.result_row_info = {
       self.bmi_result_row: {
-        'calc-function': calc.bmi,
+        'calc-function': calculate.bmi,
         'context': {
-          'calc-function': calc.bmi_and_height_to_weight,
+          'calc-function': calculate.mass_from_bmi_and_height,
           'description': _("With the same height, this is what weight you need to get different BMI thresholds"),
         },
         'thresholds': [
@@ -133,22 +135,22 @@ class BmiWindow(Adw.ApplicationWindow):
         ],
       },
       self.whtr_result_row: {
-        'calc-function': calc.whtr,
+        'calc-function': calculate.whtr,
         'thresholds': [
-          {'text': _('Healthy'),   'value': 0,                   'style': 1},
-          {'text': _('Unhealthy'), 'value': calc.whtr_unhealthy, 'style': 2},
+          {'text': _('Healthy'),   'value': 0,                        'style': 1},
+          {'text': _('Unhealthy'), 'value': calculate.whtr_unhealthy, 'style': 2},
         ],
       },
       self.whr_result_row: {
-        'calc-function': calc.whr,
+        'calc-function': calculate.whr,
         'thresholds': [
-          {'text': _('Healthy'),    'value': 0,                   'style': 1},
-          {'text': _('Overweight'), 'value': calc.whr_overweight, 'style': 2},
-          {'text': _('Obese'),      'value': calc.whr_obese,      'style': 3},
+          {'text': _('Healthy'),    'value': 0,                        'style': 1},
+          {'text': _('Overweight'), 'value': calculate.whr_overweight, 'style': 2},
+          {'text': _('Obese'),      'value': calculate.whr_obese,      'style': 3},
         ],
       },
       self.bri_result_row: {
-        'calc-function': calc.bri,
+        'calc-function': calculate.bri,
         'thresholds': [
           {'text': _('Very lean'),     'value': 0,    'style': 0},
           {'text': _('Lean'),          'value': 3.41, 'style': 1},
@@ -158,12 +160,14 @@ class BmiWindow(Adw.ApplicationWindow):
         ],
       },
     }
+
     # Setting stuff from settings
     window_width, window_height = settings['window-size']
     self.set_default_size(window_width, window_height)
     self.set_advanced_mode(settings['advanced-mode'])
     self.set_imperial(settings['measurement-system'])
     self.update_results()
+
     # Connecting stuff
     settings.connect('changed', self.on_settings_changed)
     self.simple_breakpoint.connect('apply', self.on_simple_breakpoint_apply)
@@ -233,13 +237,12 @@ class BmiWindow(Adw.ApplicationWindow):
   def calc_row_values(self, row: widgets.ResultRow, inputs: dict) -> tuple:
     info = self.result_row_info.get(row)
     calc_function = info.get('calc-function')
-    result = calc_function(inputs)
+    result = calc_function(**inputs)
     thresholds = copy.deepcopy(info.get('thresholds'))
     for i in range(len(thresholds)):
-      threshold = thresholds[i]
-      value = threshold.get('value')
-      if callable(value):
-        thresholds[i]['value'] = value(inputs)
+      threshold_value = thresholds[i]['value']
+      if callable(threshold_value):
+        thresholds[i]['value'] = threshold_value(**inputs)
     return result, thresholds
 
   def update_results(self, *args):
@@ -270,8 +273,8 @@ class BmiWindow(Adw.ApplicationWindow):
     calc_function = context_info.get('calc-function')
     inputs = self.get_inputs()
     for i in range(len(thresholds)):
-      threshold = thresholds[i]
-      value = calc_function(inputs, threshold.get('value'))
+      threshold_value = thresholds[i]['value']
+      value = calc_function(threshold_value, **inputs)
       thresholds[i]['value'] = value
     return description, thresholds
 

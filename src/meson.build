@@ -43,7 +43,7 @@ configure_file(
 bmi_sources = [
   '__init__.py',
   'main.py',
-  'calculator.py',
+  'calculate.py',
   'window/window.py',
   'preferences/preferences.py',
 ]
