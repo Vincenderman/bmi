@@ -15,8 +15,11 @@ class MassRow(SpinRow):
     super().__init__(**kwargs)
     self.set_subtitle(_('Kilograms'))
     self.connect('notify::imperial', self._on_imperial_changed)
+    self._last_imperial = self.imperial
 
   def _on_imperial_changed(self, *args):
+    if self.imperial == self._last_imperial:
+      return
     value = self.get_value()
     if self.imperial is True:
       convert_func = kg_to_lb
@@ -25,6 +28,7 @@ class MassRow(SpinRow):
       convert_func = lb_to_kg
       self.set_subtitle(_('Kilograms'))
     self.value = convert_func(self.value)
+    self._last_imperial = self.imperial
 
   def get_imperial(self) -> bool:
     return self.imperial
