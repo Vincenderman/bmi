@@ -4,18 +4,13 @@ from gi.repository import GObject, Gtk, Adw
 # Internal imports
 from .base_row import BaseRow
 
-# Biggest signed integer GTK accepts
-max_size = 2_147_483_647
-
-# Shorthand vars
-center = Gtk.Align.CENTER
 
 class SpinRow(BaseRow):
   __gtype_name__ = 'SpinRow'
 
-  value = GObject.Property(type=int, default=0)
-  upper = GObject.Property(type=int, default=max_size)
-  lower = GObject.Property(type=int, default=-max_size)
+  value = GObject.Property(type=float, default=10)
+  upper = GObject.Property(type=float, default=999.9)
+  lower = GObject.Property(type=float, default=0.1)
   digits = GObject.Property(type=int, default=1)
 
   def __init__(self, **kwargs):
@@ -24,21 +19,19 @@ class SpinRow(BaseRow):
     self.set_size_request(260, 60)
     self.set_activatable(True)
     self.set_css_classes(['spin'])
-    climb_rate = 1
-    self.step_increment = 1
-    self.page_increment = 10
     self.adjustment = Gtk.Adjustment.new(
       self.value,
       self.lower,
       self.upper,
-      self.step_increment,
-      self.page_increment,
+      0,
+      0,
       0,
     )
-    self.spin_button = Gtk.SpinButton(xalign=1, valign=center, hexpand=True)
-    self.spin_button.configure(self.adjustment, climb_rate, self.digits)
+    self.spin_button = Gtk.SpinButton(xalign=1, valign=Gtk.Align.CENTER, hexpand=True)
+    self.spin_button.configure(self.adjustment, 1, self.digits)
     self.spin_button.set_hexpand(True)
     self.add_suffix(self.spin_button)
+    self.configure(None, None)
     # Connecting
     self.connect('notify::value', self.configure)
     self.connect('notify::lower', self.configure)
@@ -47,13 +40,15 @@ class SpinRow(BaseRow):
     self.spin_button.connect('value-changed', self.on_value_changed)
 
   def configure(self, row, param):
+    step_increment = 1 / 10 ** self.digits
+    page_increment = step_increment * 10
     self.adjustment.configure(
       self.value,
       self.lower,
       self.upper,
-      self.step_increment,
-      self.page_increment,
-      0,
+      step_increment,
+      page_increment,
+      page_size=0,
     )
     lower_width_chars = len(str(self.lower)) + self.digits
     upper_width_chars = len(str(self.upper)) + self.digits
