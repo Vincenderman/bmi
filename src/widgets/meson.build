@@ -8,7 +8,6 @@ widget_sources = [
   'spin_row.py',
   'distance_row.py',
   'mass_row.py',
-  'time_row.py',
   # Output
   'result_row.py',
   'result_dialog.py',
