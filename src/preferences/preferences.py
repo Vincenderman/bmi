@@ -38,7 +38,7 @@ class BmiPreferences(Adw.PreferencesDialog):
     super().__init__(**kwargs)
     self.connect('notify::settings', on_settings_changed)
     for row in self.get_rows():
-      row.connect(row.get_signal(), self._on_row_value_changed)
+      row.connect('notify::value', self._on_row_value_changed)
 
   def get_settings(self) -> Gio.Settings:
     return self.settings

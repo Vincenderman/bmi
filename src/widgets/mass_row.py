@@ -5,17 +5,32 @@ from gi.repository import GObject, Gtk, Adw
 from .spin_row import SpinRow
 from .shared import *
 
-# Class
+
 class MassRow(SpinRow):
   __gtype_name__ = 'MassRow'
 
-  imperial = GObject.Property(
-    type=bool, default=False,
-  )
+  imperial = GObject.Property(type=bool, default=False)
 
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.set_subtitle(_('Kilograms'))
+    self.connect('notify::imperial', self._on_imperial_changed)
+
+  def _on_imperial_changed(self, *args):
+    value = self.get_value()
+    if self.imperial is True:
+      convert_func = kg_to_lb
+      self.set_subtitle(_('Pounds'))
+    else:
+      convert_func = lb_to_kg
+      self.set_subtitle(_('Kilograms'))
+    self.value = convert_func(self.value)
+
+  def get_imperial(self) -> bool:
+    return self.imperial
+
+  def set_imperial(self, imperial: bool):
+    self.imperial = imperial
 
   def get_kilograms(self):
     if self.imperial:
@@ -28,17 +43,3 @@ class MassRow(SpinRow):
       return self.get_value()
     else:
       return kg_to_lb(self.get_value())
-
-  def set_imperial(self, imperial: bool):
-    if self.imperial is imperial:
-      return
-    value = self.get_value()
-    if imperial is True:
-      value = kg_to_lb(value)
-      self.set_subtitle(_('Pounds'))
-    else:
-      value = lb_to_kg(value)
-      self.set_subtitle(_('Kilograms'))
-    value = round(value, 0)
-    self.imperial = imperial
-    self.set_value(value)

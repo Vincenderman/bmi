@@ -19,8 +19,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 # Imports
+import copy
+import math
+import re
+
+# Gtk imports
 from gi.repository import Gtk, Adw, Gio, Gdk
-import math, re, copy
 
 # Internal imports
 from . import widgets
@@ -70,14 +74,14 @@ class BmiWindow(Adw.ApplicationWindow):
   simple_breakpoint = Gtk.Template.Child()
   advanced_breakpoint = Gtk.Template.Child()
   advanced_inputs_clamp = Gtk.Template.Child()
-  ## Input rows
+  # Input rows
   height_input_row = Gtk.Template.Child()
   weight_input_row = Gtk.Template.Child()
   gender_input_row = Gtk.Template.Child()
   age_input_row = Gtk.Template.Child()
   waist_input_row = Gtk.Template.Child()
   hip_input_row = Gtk.Template.Child()
-  ## Result rows
+  # Result rows
   bmi_result_row = Gtk.Template.Child()
   whtr_result_row = Gtk.Template.Child()
   whr_result_row = Gtk.Template.Child()
@@ -99,7 +103,7 @@ class BmiWindow(Adw.ApplicationWindow):
     for row in self.input_rows:
       key = row.get_key()
       row.set_value(settings[key])
-      row.connect(row.get_signal(), self.update_results)
+      row.connect('notify::value', self.update_results)
     # Configuring results
     self.result_rows = [
       self.bmi_result_row,

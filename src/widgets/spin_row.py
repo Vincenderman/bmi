@@ -1,5 +1,5 @@
-# Imports
-from gi.repository import GObject, Gtk, Adw
+# Gtk imports
+from gi.repository import GObject, Gtk
 
 # Internal imports
 from .base_row import BaseRow
@@ -8,72 +8,64 @@ from .base_row import BaseRow
 class SpinRow(BaseRow):
   __gtype_name__ = 'SpinRow'
 
-  value = GObject.Property(type=float, default=10)
-  upper = GObject.Property(type=float, default=999.9)
-  lower = GObject.Property(type=float, default=0.1)
   digits = GObject.Property(type=int, default=1)
+  lower = GObject.Property(type=float, default=0.1)
+  upper = GObject.Property(type=float, default=999.9)
+  value = GObject.Property(type=float, default=10.0)
 
   def __init__(self, **kwargs):
-    super().__init__(**kwargs)
+    # Creating the spin button
+    self.spin_button = Gtk.SpinButton(
+      xalign=1,
+      hexpand=True,
+      valign=Gtk.Align.CENTER,
+      css_classes=['spin'],
+      climb_rate=1,
+    )
+    adjustment = self.spin_button.get_adjustment()
+    self._update_step_increment()
+    adjustment.set_page_size(0)
+    # Wiring spin button properties
+    self.wire_property('digits', self.spin_button)
+    self.wire_property('lower', adjustment)
+    self.wire_property('upper', adjustment)
+    self.wire_property('value', adjustment)
     # Setting up self
+    super().__init__(**kwargs)
+    self.add_suffix(self.spin_button)
     self.set_size_request(260, 60)
     self.set_activatable(True)
     self.set_css_classes(['spin'])
-    self.adjustment = Gtk.Adjustment.new(
-      self.value,
-      self.lower,
-      self.upper,
-      0,
-      0,
-      0,
-    )
-    self.spin_button = Gtk.SpinButton(xalign=1, valign=Gtk.Align.CENTER, hexpand=True)
-    self.spin_button.configure(self.adjustment, 1, self.digits)
-    self.spin_button.set_hexpand(True)
-    self.add_suffix(self.spin_button)
-    self.configure(None, None)
-    # Connecting
-    self.connect('notify::value', self.configure)
-    self.connect('notify::lower', self.configure)
-    self.connect('notify::upper', self.configure)
-    self.connect('notify::digits', self.update_digits)
-    self.spin_button.connect('value-changed', self.on_value_changed)
+    self.connect('notify::digits', self._on_digits_changed)
 
-  def configure(self, row, param):
+  def _on_digits_changed(self, *args):
+    self._update_step_increment()
+
+  def _update_step_increment(self):
     step_increment = 1 / 10 ** self.digits
     page_increment = step_increment * 10
-    self.adjustment.configure(
-      self.value,
-      self.lower,
-      self.upper,
-      step_increment,
-      page_increment,
-      page_size=0,
-    )
-    lower_width_chars = len(str(self.lower)) + self.digits
-    upper_width_chars = len(str(self.upper)) + self.digits
-    if lower_width_chars > upper_width_chars:
-      self.spin_button.set_width_chars(lower_width_chars)
-    else:
-      self.spin_button.set_width_chars(upper_width_chars)
+    self.spin_button.set_increments(step_increment, page_increment)
 
-  def set_value(self, value):
+  def get_value(self) -> float:
+    return self.value
+
+  def set_value(self, value: float):
     self.value = value
 
-  def get_value(self):
-    return self.adjustment.get_value()
+  def get_digits(self) -> int:
+    return self.digits
 
   def set_digits(self, digits: int):
     self.digits = digits
 
-  def update_digits(self, row, param):
-    self.spin_button.set_digits(self.digits)
+  def get_lower(self) -> float:
+    return self.lower
 
-  def get_name(self):
-    return self.__class__.__name__
+  def set_lower(self, lower: float):
+    self.lower = lower
 
-  def on_value_changed(self, spin_button):
-    self.value = spin_button.get_value()
+  def get_upper(self) -> float:
+    return self.upper
 
-  def get_signal(self):
-    return 'notify::value'
+  def set_upper(self, upper: float):
+    self.upper = upper
