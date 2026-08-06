@@ -2,13 +2,13 @@ pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 moduledir = pkgdatadir / 'bmi'
 gnome = import('gnome')
 
-blueprints = custom_target('blueprints',
+blueprints = custom_target(
+  'blueprints',
   input: files(
     # Main
     'window.blp',
     'preferences.blp',
     # Widgets
-    'widgets/result_row.blp',
     'widgets/result_dialog.blp',
   ),
   output: '.',

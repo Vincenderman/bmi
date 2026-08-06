@@ -29,37 +29,6 @@ from gi.repository import GObject, Gtk, Adw, Gio, Gdk
 # Internal imports
 from . import widgets, calculate
 
-# Shorthand vars
-clipboard = Gdk.Display.get_default().get_clipboard()
-horizontal = Gtk.Orientation.HORIZONTAL
-vertical = Gtk.Orientation.VERTICAL
-adw_lenght_units = {
-  'px': Adw.LengthUnit.PX,
-  'sp': Adw.LengthUnit.SP,
-  'pt': Adw.LengthUnit.PT,
-}
-
-# Helper functions
-def eval_breakpoint(window, adw_breakpoint):
-  width = window.get_size(horizontal)
-  height = window.get_size(vertical)
-  condition = adw_breakpoint.get_condition().to_string()
-  condition = condition.replace('min-width:', 'width >')
-  condition = condition.replace('max-width:', 'width <')
-  condition = condition.replace('min-height:', 'height >')
-  condition = condition.replace('max-height:', 'height <')
-  condition = condition.split('and')
-  for statement in condition:
-    combined = re.search('([0-9]).*', statement).group().strip()
-    units = combined[-2] + combined[-1] # Last 2 chars (i.e. px, sp or pt)
-    value = float(combined.removesuffix(units))
-    units = adw_lenght_units.get(units)
-    pixels = math.ceil( Adw.LengthUnit.to_px(units, value) )
-    statement = statement.replace(combined, str(pixels))
-    if not eval(statement):
-      return False
-  return True
-
 
 @Gtk.Template(resource_path='/io/github/philippkosarev/bmi/window.ui')
 class BmiWindow(Adw.ApplicationWindow):
@@ -174,7 +143,7 @@ class BmiWindow(Adw.ApplicationWindow):
     self.update_results()
 
     # Connecting stuff
-    self.settings.connect('changed', self.on_settings_changed)
+    self.settings.connect('changed', self._on_settings_value_changed)
     self.simple_breakpoint.connect('apply', self.on_simple_breakpoint_apply)
     self.simple_breakpoint.connect('unapply', self.on_simple_breakpoint_unapply)
     self.advanced_breakpoint.connect('apply', self.on_advanced_breakpoint_apply)
@@ -186,39 +155,6 @@ class BmiWindow(Adw.ApplicationWindow):
 
   def set_settings(self, settings: Gio.Settings):
     self.settings = settings
-
-  def on_simple_breakpoint_apply(self, adw_breakpoint = None):
-    if self.settings['advanced-mode']:
-      return
-    self.set_ui_orientation(horizontal)
-
-  def on_simple_breakpoint_unapply(self, adw_breakpoint = None):
-    if self.settings['advanced-mode']:
-      return
-    self.set_ui_orientation(vertical)
-
-  def on_advanced_breakpoint_apply(self, adw_breakpoint = None):
-    self.set_ui_orientation(horizontal)
-
-  def on_advanced_breakpoint_unapply(self, adw_breakpoint = None):
-    self.set_ui_orientation(vertical)
-
-  def set_ui_orientation(self, orientation: horizontal or vertical):
-    self.orientable_box.set_orientation(orientation)
-    if orientation is horizontal:
-      self.orientable_box.set_spacing(24);
-    else:
-      self.orientable_box.set_spacing(16);
-
-  def update_breakpoints(self):
-    if eval_breakpoint(self, self.advanced_breakpoint):
-      self.on_advanced_breakpoint_apply()
-    else:
-      self.on_advanced_breakpoint_unapply()
-    if eval_breakpoint(self, self.simple_breakpoint):
-      self.on_simple_breakpoint_apply()
-    else:
-      self.on_simple_breakpoint_unapply()
 
   def set_advanced_mode(self, mode: bool):
     self.advanced_inputs_clamp.set_visible(mode)
@@ -259,7 +195,7 @@ class BmiWindow(Adw.ApplicationWindow):
     inputs = self.get_inputs()
     for row in self.result_row_info:
       result, thresholds = self.calc_row_values(row, inputs)
-      row.set_result(result)
+      row.set_value(result)
       row.set_feedback(result, thresholds)
 
   def on_result_row_info_clicked(self, row: widgets.ResultRow, button: Gtk.Button):
@@ -287,8 +223,8 @@ class BmiWindow(Adw.ApplicationWindow):
     return description, thresholds
 
   def copy_result(self, row: widgets.ResultRow):
-    value = row.get_result()
-    Gdk.Clipboard.set(clipboard, value);
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    clipboard.set(row.value_label)
     self.show_toast(_("Result copied"))
 
   def show_toast(self, text):
@@ -302,20 +238,73 @@ class BmiWindow(Adw.ApplicationWindow):
       if hasattr(row, 'imperial'):
         row.set_imperial(imperial)
 
-  # Handles changes to settings.
-  def on_settings_changed(self, settings: Gio.Settings, key: str):
+  def _on_settings_value_changed(self, settings: Gio.Settings, key: str):
     update_functions = {
       'advanced-mode': self.set_advanced_mode,
       'measurement-system': self.set_imperial,
       'remember-inputs': self.update_results,
     }
-    if key in update_functions:
-      function = update_functions.get(key)
-      value = self.settings[key]
-      function(value)
+    update_function = update_functions.get(key)
+    if not update_function:
+      return
+    update_function(settings[key])
+
+  def _eval_breakpoint(self, adw_breakpoint):
+    width = self.get_size(Gtk.Orientation.HORIZONTAL)
+    height = self.get_size(Gtk.Orientation.VERTICAL)
+    condition = adw_breakpoint.get_condition().to_string()
+    condition = condition.replace('min-width:', 'width >')
+    condition = condition.replace('max-width:', 'width <')
+    condition = condition.replace('min-height:', 'height >')
+    condition = condition.replace('max-height:', 'height <')
+    condition = condition.split('and')
+    for statement in condition:
+      combined = re.search('([0-9]).*', statement).group().strip()
+      units = combined[-2] + combined[-1] # Last 2 chars (i.e. px, sp or pt)
+      value = float(combined.removesuffix(units))
+      adw_lenght_units = {u.name.lower(): u for u in Adw.LengthUnit}
+      units = adw_lenght_units[units]
+      pixels = math.ceil( Adw.LengthUnit.to_px(units, value) )
+      statement = statement.replace(combined, str(pixels))
+      if not eval(statement):
+        return False
+    return True
+
+  def on_simple_breakpoint_apply(self, adw_breakpoint = None):
+    if self.settings['advanced-mode']:
+      return
+    self.set_ui_orientation(Gtk.Orientation.HORIZONTAL)
+
+  def on_simple_breakpoint_unapply(self, adw_breakpoint = None):
+    if self.settings['advanced-mode']:
+      return
+    self.set_ui_orientation(Gtk.Orientation.VERTICAL)
+
+  def on_advanced_breakpoint_apply(self, adw_breakpoint = None):
+    self.set_ui_orientation(Gtk.Orientation.HORIZONTAL)
+
+  def on_advanced_breakpoint_unapply(self, adw_breakpoint = None):
+    self.set_ui_orientation(Gtk.Orientation.VERTICAL)
+
+  def set_ui_orientation(self, orientation: Gtk.Orientation):
+    self.orientable_box.set_orientation(orientation)
+    if orientation is Gtk.Orientation.HORIZONTAL:
+      self.orientable_box.set_spacing(24);
+    else:
+      self.orientable_box.set_spacing(16);
+
+  def update_breakpoints(self):
+    if self._eval_breakpoint(self.advanced_breakpoint):
+      self.on_advanced_breakpoint_apply()
+    else:
+      self.on_advanced_breakpoint_unapply()
+    if self._eval_breakpoint(self.simple_breakpoint):
+      self.on_simple_breakpoint_apply()
+    else:
+      self.on_simple_breakpoint_unapply()
 
   def on_close_request(self, *args):
     """Action after closing the app window."""
-    width = self.get_size(horizontal)
-    height = self.get_size(vertical)
+    width = self.get_size(Gtk.Orientation.HORIZONTAL)
+    height = self.get_size(Gtk.Orientation.VERTICAL)
     self.settings['window-size'] = (width, height)

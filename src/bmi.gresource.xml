@@ -5,7 +5,6 @@
     <!-- UI files -->
     <file>window.ui</file>
     <file>preferences.ui</file>
-    <file>widgets/result_row.ui</file>
     <file>widgets/result_dialog.ui</file>
 
     <!-- CSS files -->
