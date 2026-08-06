@@ -5,8 +5,8 @@ gnome = import('gnome')
 blueprints = custom_target('blueprints',
   input: files(
     # Main
-    'window/window.blp',
-    'preferences/preferences.blp',
+    'window.blp',
+    'preferences.blp',
     # Widgets
     'widgets/result_row.blp',
     'widgets/result_dialog.blp',
@@ -52,9 +52,10 @@ bmi_sources = [
   '__init__.py',
   'main.py',
   'calculate.py',
-  'window/window.py',
-  'preferences/preferences.py',
+  'window.py',
+  'preferences.py',
 ]
 
 install_data(bmi_sources, install_dir: moduledir)
+
 subdir('widgets')

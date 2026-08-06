@@ -61,7 +61,7 @@ def eval_breakpoint(window, adw_breakpoint):
   return True
 
 
-@Gtk.Template(resource_path='/io/github/philippkosarev/bmi/window/window.ui')
+@Gtk.Template(resource_path='/io/github/philippkosarev/bmi/window.ui')
 class BmiWindow(Adw.ApplicationWindow):
   __gtype_name__ = 'BmiWindow'
 

@@ -6,7 +6,7 @@ from . import widgets
 from .widgets.shared import get_children, get_nth_child
 
 
-@Gtk.Template(resource_path='/io/github/philippkosarev/bmi/preferences/preferences.ui')
+@Gtk.Template(resource_path='/io/github/philippkosarev/bmi/preferences.ui')
 class BmiPreferences(Adw.PreferencesDialog):
   __gtype_name__ = 'BmiPreferences'
 

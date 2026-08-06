@@ -5,6 +5,7 @@ template $BmiWindow: Adw.ApplicationWindow {
   // Basic window properties
   title: "BMI";
   height-request: 240;
+
   // Breakpoints
   Adw.Breakpoint simple_breakpoint {
     condition ("min-width: 580sp and max-height: 350sp")
@@ -12,6 +13,7 @@ template $BmiWindow: Adw.ApplicationWindow {
   Adw.Breakpoint advanced_breakpoint {
     condition ("min-width: 840sp and max-height: 730sp")
   }
+
   // Content
   [content]
   Adw.ToolbarView {
@@ -25,6 +27,7 @@ template $BmiWindow: Adw.ApplicationWindow {
         primary: true;
       }
     }
+
     // Content
     content: Adw.ToastOverlay toast_overlay {
       ScrolledWindow {
