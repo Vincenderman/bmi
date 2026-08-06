@@ -24,7 +24,7 @@ import math
 import re
 
 # Gtk imports
-from gi.repository import Gtk, Adw, Gio, Gdk
+from gi.repository import GObject, Gtk, Adw, Gio, Gdk
 
 # Internal imports
 from . import widgets, calculate
@@ -65,6 +65,8 @@ def eval_breakpoint(window, adw_breakpoint):
 class BmiWindow(Adw.ApplicationWindow):
   __gtype_name__ = 'BmiWindow'
 
+  settings = GObject.Property(type=Gio.Settings)
+
   # Important Widgets
   toast_overlay = Gtk.Template.Child()
   clamp = Gtk.Template.Child()
@@ -87,10 +89,13 @@ class BmiWindow(Adw.ApplicationWindow):
   whr_result_row = Gtk.Template.Child()
   bri_result_row = Gtk.Template.Child()
 
-  def __init__(self, **kwargs):
-    super().__init__(**kwargs)
-    self.get_app = self.get_application
-    settings = self.get_app().get_settings()
+  def __init__(self, application: Gio.Application):
+    # Setting up self
+    super().__init__(application=application)
+    self.settings = application.get_settings()
+    flags = GObject.BindingFlags.BIDIRECTIONAL
+    self.bind_property('settings', application, 'settings', flags)
+
     # Configuring inputs
     self.input_rows = [
       self.height_input_row,
@@ -102,7 +107,7 @@ class BmiWindow(Adw.ApplicationWindow):
     ]
     for row in self.input_rows:
       key = row.get_key()
-      row.set_value(settings[key])
+      row.set_value(self.settings[key])
       row.connect('notify::value', self.update_results)
 
     # Configuring results
@@ -162,27 +167,33 @@ class BmiWindow(Adw.ApplicationWindow):
     }
 
     # Setting stuff from settings
-    window_width, window_height = settings['window-size']
+    window_width, window_height = self.settings['window-size']
     self.set_default_size(window_width, window_height)
-    self.set_advanced_mode(settings['advanced-mode'])
-    self.set_imperial(settings['measurement-system'])
+    self.set_advanced_mode(self.settings['advanced-mode'])
+    self.set_imperial(self.settings['measurement-system'])
     self.update_results()
 
     # Connecting stuff
-    settings.connect('changed', self.on_settings_changed)
+    self.settings.connect('changed', self.on_settings_changed)
     self.simple_breakpoint.connect('apply', self.on_simple_breakpoint_apply)
     self.simple_breakpoint.connect('unapply', self.on_simple_breakpoint_unapply)
     self.advanced_breakpoint.connect('apply', self.on_advanced_breakpoint_apply)
     self.advanced_breakpoint.connect('unapply', self.on_advanced_breakpoint_unapply)
     self.connect("close-request", self.on_close_request)
 
+  def get_settings(self) -> Gio.Settings:
+    return self.settings
+
+  def set_settings(self, settings: Gio.Settings):
+    self.settings = settings
+
   def on_simple_breakpoint_apply(self, adw_breakpoint = None):
-    if self.get_app().get_settings()['advanced-mode']:
+    if self.settings['advanced-mode']:
       return
     self.set_ui_orientation(horizontal)
 
   def on_simple_breakpoint_unapply(self, adw_breakpoint = None):
-    if self.get_app().get_settings()['advanced-mode']:
+    if self.settings['advanced-mode']:
       return
     self.set_ui_orientation(vertical)
 
@@ -217,7 +228,6 @@ class BmiWindow(Adw.ApplicationWindow):
     self.update_breakpoints()
 
   def get_inputs(self):
-    settings = self.get_app().get_settings()
     inputs = {}
     for row in self.input_rows:
       if hasattr(row, 'get_centimetres'):
@@ -228,10 +238,10 @@ class BmiWindow(Adw.ApplicationWindow):
         value = row.get_value()
       key = row.get_key()
       inputs[key] = value
-      if settings['remember-inputs']:
-        settings[key] = value
+      if self.settings['remember-inputs']:
+        self.settings[key] = value
       else:
-        settings.reset(key)
+        self.settings.reset(key)
     return inputs
 
   def calc_row_values(self, row: widgets.ResultRow, inputs: dict) -> tuple:
@@ -253,7 +263,6 @@ class BmiWindow(Adw.ApplicationWindow):
       row.set_feedback(result, thresholds)
 
   def on_result_row_info_clicked(self, row: widgets.ResultRow, button: Gtk.Button):
-    settings = self.get_app().get_settings()
     dialog = widgets.ResultDialog(row)
     inputs = self.get_inputs()
     result, thresholds = self.calc_row_values(row, inputs)
@@ -261,11 +270,10 @@ class BmiWindow(Adw.ApplicationWindow):
     dialog.set_feedback(result, thresholds)
     if 'context' in self.result_row_info.get(row):
       description, thresholds = self.get_row_context(row)
-      dialog.set_context(description, thresholds, bool(settings['measurement-system']))
+      dialog.set_context(description, thresholds, bool(self.settings['measurement-system']))
     dialog.present(self)
 
   def get_row_context(self, row: widgets.ResultRow) -> tuple:
-    settings = self.get_app().get_settings()
     info = self.result_row_info.get(row)
     thresholds = copy.deepcopy(info.get('thresholds'))
     context_info = info.get('context')
@@ -303,10 +311,11 @@ class BmiWindow(Adw.ApplicationWindow):
     }
     if key in update_functions:
       function = update_functions.get(key)
-      value = settings[key]
+      value = self.settings[key]
       function(value)
 
-  # Action after closing the app window.
   def on_close_request(self, *args):
-    settings = self.get_app().get_settings()
-    settings['window-size'] = self.get_size(horizontal), self.get_size(vertical)
+    """Action after closing the app window."""
+    width = self.get_size(horizontal)
+    height = self.get_size(vertical)
+    self.settings['window-size'] = (width, height)
