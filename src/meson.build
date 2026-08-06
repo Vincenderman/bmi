@@ -40,6 +40,14 @@ configure_file(
   install_mode: 'r-xr-xr-x'
 )
 
+configure_file(
+  input: 'data.py.in',
+  output: 'data.py',
+  configuration: conf,
+  install: true,
+  install_dir: moduledir,
+)
+
 bmi_sources = [
   '__init__.py',
   'main.py',

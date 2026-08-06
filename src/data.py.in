@@ -1,0 +1,3 @@
+# Constants
+VERSION = '@VERSION@'
+APPLICATION_ID = 'io.github.philippkosarev.bmi'
