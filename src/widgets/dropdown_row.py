@@ -9,7 +9,7 @@ class DropDownRow(Adw.ComboRow):
   __gtype_name__ = 'DropDownRow'
 
   key = GObject.Property(type=str)
-  value = GObject.Property(type=int)
+  value = GObject.Property(type=int, default=0)
 
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
@@ -20,6 +20,7 @@ class DropDownRow(Adw.ComboRow):
       GObject.BindingFlags.BIDIRECTIONAL
       | GObject.BindingFlags.SYNC_CREATE
     )
+    self.set_property('selected', self.value)
     self.bind_property('selected', self, 'value', flags)
 
   def get_key(self) -> str:
