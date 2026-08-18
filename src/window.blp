@@ -2,11 +2,9 @@ using Gtk 4.0;
 using Adw 1;
 
 template $BmiWindow: Adw.ApplicationWindow {
-  // Basic window properties
   title: "BMI";
   height-request: 240;
 
-  // Breakpoints
   Adw.Breakpoint simple_breakpoint {
     condition ("min-width: 580sp and max-height: 350sp")
   }
@@ -14,10 +12,8 @@ template $BmiWindow: Adw.ApplicationWindow {
     condition ("min-width: 840sp and max-height: 730sp")
   }
 
-  // Content
   [content]
   Adw.ToolbarView {
-    // Header
     [top]
     Adw.HeaderBar {
       [end]
@@ -28,12 +24,13 @@ template $BmiWindow: Adw.ApplicationWindow {
       }
     }
 
-    // Content
     content: Adw.ToastOverlay toast_overlay {
       ScrolledWindow {
         hscrollbar-policy: never;
+
         Adw.Clamp clamp {
           maximum-size: 1100;
+
           Box orientable_box {
             orientation: vertical;
             margin-top: 4;
@@ -44,8 +41,10 @@ template $BmiWindow: Adw.ApplicationWindow {
             // Basic inputs
             Adw.Clamp basic_inputs_clamp {
               maximum-size: 400;
+
               Adw.PreferencesGroup {
                 title: _("Inputs");
+
                 $DistanceRow height_input_row {
                   title: _("Height");
                   tooltip-text: _("Affects BMI and BRI");
@@ -53,6 +52,7 @@ template $BmiWindow: Adw.ApplicationWindow {
                   lower: 10;
                   upper: 999;
                 }
+
                 $MassRow weight_input_row {
                   title: _("Weight");
                   tooltip-text: _("Affects BMI");
@@ -66,8 +66,10 @@ template $BmiWindow: Adw.ApplicationWindow {
             // Advanced inputs
             Adw.Clamp advanced_inputs_clamp {
               maximum-size: 400;
+
               Adw.PreferencesGroup {
                 title: _("Advanced inputs");
+
                 $DropDownRow gender_input_row {
                   title: _("Gender");
                   subtitle: _("Biological gender");
@@ -77,6 +79,7 @@ template $BmiWindow: Adw.ApplicationWindow {
                     strings [_("Average"), _("Female"), _("Male")]
                   };
                 }
+
                 $SpinRow age_input_row {
                   title: _("Age");
                   subtitle: _("Years");
@@ -86,6 +89,7 @@ template $BmiWindow: Adw.ApplicationWindow {
                   lower: 18;
                   upper: 150;
                 }
+
                 $DistanceRow waist_input_row {
                   title: _("Waist");
                   tooltip-text: _("Affects Waist to Height ratio, Waist to Hip ratio and BRI");
@@ -93,6 +97,7 @@ template $BmiWindow: Adw.ApplicationWindow {
                   lower: 10;
                   upper: 999;
                 }
+
                 $DistanceRow hip_input_row {
                   title: _("Hip");
                   tooltip-text: _("Affects Waist to Hip ratio");
@@ -106,31 +111,35 @@ template $BmiWindow: Adw.ApplicationWindow {
             // Results
             Adw.Clamp results_clamp {
               maximum-size: 400;
+
               Adw.PreferencesGroup {
                 title: _("Results");
+
                 $ResultRow bmi_result_row {
                   title: _("BMI");
                   tooltip-text: _("Body Mass Index");
                   digits: 1;
                 }
-                $ResultRow whtr_result_row {
-                  title: _("Waist / Height");
-                  tooltip-text: _("Waist to height ratio");
-                  digits: 2;
-                }
-                $ResultRow whr_result_row {
-                  title: _("Waist / Hip");
-                  tooltip-text: _("Waist to hip ratio");
-                  digits: 2;
-                }
+
                 $ResultRow bri_result_row {
                   title: _("BRI");
                   tooltip-text: _("Body Roundness Index");
                   digits: 2;
                 }
+
+                $ResultRow whr_result_row {
+                  title: _("Waist / Hip");
+                  tooltip-text: _("Waist to hip ratio");
+                  digits: 2;
+                }
+
+                $ResultRow whtr_result_row {
+                  title: _("Waist / Height");
+                  tooltip-text: _("Waist to height ratio");
+                  digits: 2;
+                }
               }
             }
-
           }
         }
       }
