@@ -234,9 +234,10 @@ class BmiWindow(Adw.ApplicationWindow):
 
   def set_imperial(self, measurement_system: int):
     imperial = bool(measurement_system)
-    for row in self.input_rows:
-      if hasattr(row, 'imperial'):
-        row.set_imperial(imperial)
+    self.height_input_row.set_imperial(imperial)
+    self.weight_input_row.set_imperial(imperial)
+    self.waist_input_row.set_imperial(imperial)
+    self.hip_input_row.set_imperial(imperial)
 
   def _on_settings_value_changed(self, settings: Gio.Settings, key: str):
     update_functions = {
