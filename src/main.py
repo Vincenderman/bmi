@@ -92,7 +92,8 @@ class BmiApplication(Adw.Application):
     about_dialog.present(self.get_active_window())
 
   def on_quit(self, action, param):
-    self.win.on_close_window(widget='')
+    window = self.get_active_window()
+    window.close()
     self.quit()
 
   def do_activate(self):
